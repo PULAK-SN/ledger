@@ -1,4 +1,5 @@
 import { userModel } from "../models/user.model.js";
+import { sendRegistrationEmail } from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 
 async function signup(req, res) {
@@ -18,6 +19,8 @@ async function signup(req, res) {
   res
     .status(201)
     .json({ user: { _id: user._id, email: user.email, name: user.name } });
+
+  await sendRegistrationEmail(user.email, user.name);
 }
 
 async function login(req, res) {
