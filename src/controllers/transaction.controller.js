@@ -1,0 +1,95 @@
+import transactionModel from "../models/transaction.model.js";
+import ledgerModel from "../models/ledger.model.js";
+import accountModel from "../models/account.model.js";
+import {
+  sendTransactionEmail,
+  sendTransactionFailureEmail,
+} from "../services/email.service.js";
+import mongoose from "mongoose";
+/**
+ * create new transaction
+ * the 10 step transfer flow
+ *  1. validate request
+ *  2. validate idempotency key
+ *  3. check account status
+ *  4. derive sender balance fron the ledger
+ *  5. create tanscation (PENDING)
+ *  6. create DEBIT ledger entry
+ *  7. create CREDIT ledger entry
+ *  8. mark transaction COMPLETE
+ *  9. commit mongoDB session
+ *  10. send email notification
+ */
+
+async function createTransaction(req, res) {
+  const { fromAccount, toAccount, amount, idempotencyKey } = req.body;
+}
+
+async function createInitialFundsTransaction(req, res) {
+  const { toAccount, amount, idempotencyKey } = req.body;
+
+  if (!toAccount || !amount || !idempotencyKey)
+    return res
+      .status(400)
+      .json({ message: "toAccount, amount and idempotencyKey is required" });
+
+  const toUserAccount = await accountModel.findOne({ _id: toAccount });
+
+  if (!toUserAccount)
+    return res.status(400).json({ message: "Invalid account" });
+
+  const fromUserAccount = await accountModel.findOne({
+    user: req.user._id,
+  });
+
+  if (!fromUserAccount)
+    return res.status(400).json({ message: "System user account not found" });
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  const transaction = new transactionModel({
+    fromAccount: fromUserAccount._id,
+    toAccount,
+    amount,
+    idempotencyKey,
+    status: "Pending",
+  });
+
+  const debitLedgerEntry = await ledgerModel.create(
+    [
+      {
+        account: fromUserAccount._id,
+        amount,
+        transaction: transaction._id,
+        type: "Debit",
+      },
+    ],
+    { session },
+  );
+
+  const creditLedgerEntry = await ledgerModel.create(
+    [
+      {
+        account: toAccount,
+        amount,
+        transaction: transaction._id,
+        type: "Credit",
+      },
+    ],
+    { session },
+  );
+
+  transaction.status = "Completed";
+  await transaction.save({ session });
+
+  await session.commitTransaction();
+  session.endSession();
+
+  res.status(201).json({
+    message: "Initial funds transaction completed successfully",
+    transaction,
+  });
+}
+
+export { createTransaction, createInitialFundsTransaction };

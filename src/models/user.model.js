@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -23,6 +24,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required for creating an account"],
       minlength: [6, "Password should contain more then 6 characters"],
+      select: false,
+    },
+    systemUser: {
+      type: Boolean,
+      default: false,
+      immutable: true,
       select: false,
     },
   },

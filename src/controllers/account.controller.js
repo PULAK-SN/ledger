@@ -7,4 +7,8 @@ async function createAccount(req, res) {
   res.status(201).json({ account });
 }
 
-export { createAccount };
+async function getUserAccount(req, res) {
+  const accounts = await accountModel.find({ user: req.user._id });
+  res.status(200).json({ accounts });
+}
+export { createAccount, getUserAccount };
