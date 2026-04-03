@@ -1,4 +1,5 @@
 import userModel from "../models/user.model.js";
+import tokenBlackListModel from "../models/blackList.model.js";
 import jwt from "jsonwebtoken";
 
 async function checkLogin(req, res, next) {
@@ -8,6 +9,14 @@ async function checkLogin(req, res, next) {
     return res
       .status(401)
       .json({ message: "Unathorized access, token is missing" });
+
+  const isBlacklisted = await tokenBlackListModel.findOne({ token });
+
+  if (isBlacklisted) {
+    return res.status(401).json({
+      message: "Unauthorized access, token is invalid",
+    });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -32,6 +41,14 @@ async function authSystemUser(req, res, next) {
     return res
       .status(401)
       .json({ message: "Unathorized access, token is missing" });
+
+  const isBlacklisted = await tokenBlackListModel.findOne({ token });
+
+  if (isBlacklisted) {
+    return res.status(401).json({
+      message: "Unauthorized access, token is invalid",
+    });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
