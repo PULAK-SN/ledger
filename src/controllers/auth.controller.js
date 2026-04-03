@@ -1,5 +1,6 @@
 import userModel from "../models/user.model.js";
 import { sendRegistrationEmail } from "../services/email.service.js";
+import tokenBlackListModel from "../models/blackList.model.js";
 import jwt from "jsonwebtoken";
 
 async function signup(req, res) {
@@ -48,4 +49,24 @@ async function login(req, res) {
     .json({ user: { _id: user._id, email: user.email, name: user.name } });
 }
 
-export { login, signup };
+async function logout(req, res) {
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res.status(200).json({
+      message: "User logged out successfully",
+    });
+  }
+
+  await tokenBlackListModel.create({
+    token,
+  });
+
+  res.clearCookie("token");
+
+  res.status(200).json({
+    message: "User logged out successfully",
+  });
+}
+
+export { login, signup, logout };
