@@ -14,4 +14,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/accounts", accountRouter);
 app.use("/api/transaction", transactionRouter);
 
+app.get("/test", (req, res) => {
+  res.send("this is a test route");
+});
 export { app };
