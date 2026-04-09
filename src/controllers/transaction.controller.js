@@ -36,8 +36,9 @@ async function createTransaction(req, res) {
     return res.status(400).json({ message: "Invalid credential" });
 
   // validate idempotencyKey
-
-  const isTransactionExists = await transactionModel.find({ idempotencyKey });
+  const [isTransactionExists] = await transactionModel.find({
+    idempotencyKey,
+  });
 
   if (isTransactionExists) {
     if (isTransactionExists.status === "Completed")
@@ -59,10 +60,7 @@ async function createTransaction(req, res) {
       });
   }
 
-  /**
-   * Check account status
-   */
-
+  // check account status
   if (
     fromUserAccount.status !== "Active" ||
     toUserAccount.status !== "Active"
@@ -102,7 +100,7 @@ async function createTransaction(req, res) {
       )
     )[0];
 
-    const debitLedgerEntry = await ledgerModel.create(
+    await ledgerModel.create(
       [
         {
           account: fromAccount,
@@ -118,13 +116,13 @@ async function createTransaction(req, res) {
       return new Promise((resolve) => setTimeout(resolve, 15 * 1000));
     })();
 
-    const creditLedgerEntry = await ledgerModel.create(
+    await ledgerModel.create(
       [
         {
           account: toAccount,
           amount: amount,
           transaction: transaction._id,
-          type: "credit",
+          type: "Credit",
         },
       ],
       { session },
@@ -139,6 +137,7 @@ async function createTransaction(req, res) {
     await session.commitTransaction();
     session.endSession();
   } catch (error) {
+    console.error(error);
     return res.status(400).json({
       message:
         "Transaction is Pending due to some issue, please retry after sometime",
@@ -185,7 +184,7 @@ async function createInitialFundsTransaction(req, res) {
     status: "Pending",
   });
 
-  const debitLedgerEntry = await ledgerModel.create(
+  await ledgerModel.create(
     [
       {
         account: fromUserAccount._id,
@@ -197,7 +196,7 @@ async function createInitialFundsTransaction(req, res) {
     { session },
   );
 
-  const creditLedgerEntry = await ledgerModel.create(
+  await ledgerModel.create(
     [
       {
         account: toAccount,
